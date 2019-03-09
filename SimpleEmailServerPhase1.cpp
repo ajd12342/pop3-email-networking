@@ -36,7 +36,8 @@ int main(int argc, char* argv[]){
 	}catch(exception e){
 		cerr<<
 		"Given port "<<argv[1]<< 
-		" is not a number"<<endl;
+		" is not a number"<<endl<<
+		"Hence bind failed on port "<<argv[1]<<endl;;
 		return 2;
 	}
 	const char* ipaddr="127.0.0.1";
@@ -85,6 +86,11 @@ int main(int argc, char* argv[]){
 	string cIP=inet_ntoa(caddr.sin_addr);
 	cout<<"Client: "<<cIP<<":"<<cPort<<endl;
 
+	//Start communication
+	int recvSize=0;
+	char message[100];
+	int maxLen=100;
+	recvSize=recv(sockfd,message,maxLen,0);
 	
 	//Close
 	close(sockfd);
