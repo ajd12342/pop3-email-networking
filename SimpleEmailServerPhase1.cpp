@@ -91,7 +91,6 @@ int main(int argc, char* argv[]){
 	char message[100];
 	int maxLen=100;
 	recvSize=recv(sockfd,message,maxLen,0);
-	
 	//Close
 	close(sockfd);
 	close(sockfdListen);

@@ -71,7 +71,22 @@ int main(int argc, char* argv[]){
 		return 2;
 	}
 	cout<<"ConnectDone: "<<ipAddr<<":"<<port<<endl;
-	while(true){
-
+	string messageStr=string("User: ")+
+						string(username)+
+						string(" Pass: ")+
+						string(passwd);
+	const char* message=messageStr.c_str();
+	int messageRem=strlen(message);
+	while(messageRem!=0){
+		int sentSize=send(sockfd,&message,
+			messageRem,0);
+		if(sentSize==-1){
+			cerr<<"Unable to send credentials "<<
+			"because a local error occurred. "<<
+			"Retrying..."<<endl;
+		}else{
+			messageRem-=sentSize;
+			message+=sentSize;
+		}
 	}
 }
