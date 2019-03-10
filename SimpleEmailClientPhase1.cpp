@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]){
 	saddr.sin_family=AF_INET;
 	saddr.sin_port=htons(port);
 	int retval;
-	retval=inet_aton(ipAddr,&(saddr.sin_addr));
+	retval=inet_pton(AF_INET,ipAddr,&(saddr.sin_addr));
 	if(retval==0){
 		cerr<<
 		"Unable to parse IP Address and/or port"<<endl<<
@@ -76,7 +77,11 @@ int main(int argc, char* argv[]){
 						string(" Pass: ")+
 						string(passwd);
 	const char* message=messageStr.c_str();
-	int messageRem=strlen(message);
+	int messageRem=strlen(message)+1;
+	cout<<messageRem<<endl;
+	for(int i=0;i<messageRem;i++){
+		cout<<(int)(message[i])<<endl;
+	}
 	while(messageRem!=0){
 		int sentSize=send(sockfd,&message,
 			messageRem,0);
@@ -89,4 +94,10 @@ int main(int argc, char* argv[]){
 			message+=sentSize;
 		}
 	}
+	cout<<"Message Sent"<<endl;
+	while(true){
+
+	}
+	//Close
+	close(sockfd);
 }

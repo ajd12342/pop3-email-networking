@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
 	struct sockaddr_in saddr;
 	saddr.sin_family=AF_INET;
 	saddr.sin_port=htons(portNum);
-	inet_aton(ipaddr,&(saddr.sin_addr));
+	inet_pton(AF_INET,ipaddr,&(saddr.sin_addr));
 	for(int i=0;i<8;i++)
 		saddr.sin_zero[i]='\0';
 	int retval;
@@ -88,9 +88,75 @@ int main(int argc, char* argv[]){
 
 	//Start communication
 	int recvSize=0;
-	char message[100];
+	char* messageIter=new char[100];
+	char* messageIterInit=messageIter;
+	char* remMessage=new char[100];
+	char* message=new char[100];
 	int maxLen=100;
-	recvSize=recv(sockfd,message,maxLen,0);
+	//Reads till null char is encountered
+	int iter=0; //Rem later
+	while(true){
+		recvSize=recv(sockfd,messageIter,maxLen,0);
+
+		iter++;
+		cout<<"Recvd "<<iter<<"times"<<endl;
+
+		if(recvSize==-1){
+			cerr<<
+			"Error occurred while receiving"<<endl;
+			return 5;
+		}
+		if(recvSize==0){
+			cout<<
+			"Transmission completed gracefully"<<endl;
+			break;
+		}
+		cout<<"Recvsize: "<<recvSize<<endl;
+		//Checks for null char
+		int i;
+		for(i=0;(i<recvSize)
+					//&&messageIter[i]!='\0'
+					;i++){
+			cout<<(int)(messageIter[i])<<endl;
+		}
+		if(i==recvSize){
+			//Null char not found; Continue loop
+			cout<<"Null Not found"<<endl;
+			messageIter+=recvSize;
+			maxLen-=recvSize;
+		}else{
+			//If any characters were encountered
+			//after '\0', store them in remMessage
+			for(int j=i+1;j<recvSize;j++){
+				remMessage[j-i-1]=messageIter[j];
+			}
+			//Copy messageIter into message
+			char* ptr=messageIterInit;
+			char* messagePtr=message;
+			while(ptr!=(messageIter+i+1)){
+				*messagePtr=*ptr;
+				ptr+=1;
+				messagePtr+=1;
+			}
+			cout<<"Null found"<<endl;
+			messageIter+=recvSize;
+			maxLen-=recvSize;
+			break;
+		}
+	}
+	delete[] messageIterInit;
+	printf("%p\n",message);
+	int i=0;
+	while(*message!='\0'){
+		i++;
+		message+=1;
+	}
+	cout<<i;
+	//cout<<message<<endl;
+	cout<<"Outside"<<endl;
+	while(true){
+
+	}
 	//Close
 	close(sockfd);
 	close(sockfdListen);
