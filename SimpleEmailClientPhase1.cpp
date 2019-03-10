@@ -9,7 +9,6 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
-#define MAX_BACKLOG 2
 using namespace std;
 int main(int argc, char* argv[]){
 
@@ -76,22 +75,25 @@ int main(int argc, char* argv[]){
 						string(username)+
 						string(" Pass: ")+
 						string(passwd);
-	const char* message=messageStr.c_str();
+	//const char* message=messageStr.c_str();
+	char* message="hello! Hi";
 	int messageRem=strlen(message)+1;
-	cout<<messageRem<<endl;
+	cout<<message<<endl;
+	cout<<"Message length: "<<messageRem<<endl;
 	for(int i=0;i<messageRem;i++){
 		cout<<(int)(message[i])<<endl;
 	}
 	while(messageRem!=0){
 		int sentSize=send(sockfd,&message,
 			messageRem,0);
+		cout<<"Entered"<<endl;
 		if(sentSize==-1){
 			cerr<<"Unable to send credentials "<<
 			"because a local error occurred. "<<
 			"Retrying..."<<endl;
 		}else{
 			messageRem-=sentSize;
-			message+=sentSize;
+			//message+=sentSize;
 		}
 	}
 	cout<<"Message Sent"<<endl;

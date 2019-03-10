@@ -100,7 +100,7 @@ int main(int argc, char* argv[]){
 
 		iter++;
 		cout<<"Recvd "<<iter<<"times"<<endl;
-
+		cout<<"Recvd size: "<<recvSize<<endl;
 		if(recvSize==-1){
 			cerr<<
 			"Error occurred while receiving"<<endl;
@@ -111,14 +111,10 @@ int main(int argc, char* argv[]){
 			"Transmission completed gracefully"<<endl;
 			break;
 		}
-		cout<<"Recvsize: "<<recvSize<<endl;
 		//Checks for null char
 		int i;
 		for(i=0;(i<recvSize)
-					//&&messageIter[i]!='\0'
-					;i++){
-			cout<<(int)(messageIter[i])<<endl;
-		}
+					&&messageIter[i]!='\0';i++);
 		if(i==recvSize){
 			//Null char not found; Continue loop
 			cout<<"Null Not found"<<endl;
@@ -138,21 +134,23 @@ int main(int argc, char* argv[]){
 				ptr+=1;
 				messagePtr+=1;
 			}
-			cout<<"Null found"<<endl;
+			cout<<"Null found at "<<i<<endl;
 			messageIter+=recvSize;
 			maxLen-=recvSize;
 			break;
 		}
 	}
-	delete[] messageIterInit;
+	//delete[] messageIterInit;
 	printf("%p\n",message);
 	int i=0;
-	while(*message!='\0'){
+	while(
+		*message!='\0'
+		){
 		i++;
+		cout<<*message;
 		message+=1;
 	}
-	cout<<i;
-	//cout<<message<<endl;
+	cout<<i<<endl;
 	cout<<"Outside"<<endl;
 	while(true){
 
