@@ -50,7 +50,7 @@ int main(int argc, char* argv[]){
 	saddr.sin_family=AF_INET;
 	saddr.sin_port=htons(port);
 	int retval;
-	retval=inet_pton(AF_INET,ipAddr,&(saddr.sin_addr));
+	retval=inet_aton(ipAddr,&(saddr.sin_addr));
 	if(retval==0){
 		cerr<<
 		"Unable to parse IP Address and/or port"<<endl<<
@@ -71,12 +71,17 @@ int main(int argc, char* argv[]){
 		return 2;
 	}
 	cout<<"ConnectDone: "<<ipAddr<<":"<<port<<endl;
+
+	//Send Message
 	string messageStr=string("User: ")+
 						string(username)+
 						string(" Pass: ")+
 						string(passwd);
-	//const char* message=messageStr.c_str();
-	char* message="hello! Hi";
+	const char* c_message=messageStr.c_str();
+	int len=strlen(c_message)+1;
+	char* message=new char[len];
+	char* messageInit=message;
+	strcpy(message,c_message);
 	int messageRem=strlen(message)+1;
 	cout<<message<<endl;
 	cout<<"Message length: "<<messageRem<<endl;
@@ -84,8 +89,9 @@ int main(int argc, char* argv[]){
 		cout<<(int)(message[i])<<endl;
 	}
 	while(messageRem!=0){
-		int sentSize=send(sockfd,&message,
+		int sentSize=send(sockfd,message,
 			messageRem,0);
+		cout<<sentSize;
 		cout<<"Entered"<<endl;
 		if(sentSize==-1){
 			cerr<<"Unable to send credentials "<<
@@ -93,10 +99,12 @@ int main(int argc, char* argv[]){
 			"Retrying..."<<endl;
 		}else{
 			messageRem-=sentSize;
-			//message+=sentSize;
+			message=message+sentSize;
 		}
 	}
 	cout<<"Message Sent"<<endl;
+	delete[] messageInit;
+	//send(sockfd,"AAAAAA",6,0);
 	while(true){
 
 	}

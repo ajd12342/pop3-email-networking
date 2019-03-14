@@ -40,14 +40,14 @@ int main(int argc, char* argv[]){
 		"Hence bind failed on port "<<argv[1]<<endl;;
 		return 2;
 	}
-	const char* ipaddr="127.0.0.1";
 
 	int sockfdListen=socket(AF_INET,SOCK_STREAM,0);
-
+	char* ipAddr="127.0.0.1";
 	struct sockaddr_in saddr;
 	saddr.sin_family=AF_INET;
 	saddr.sin_port=htons(portNum);
-	inet_pton(AF_INET,ipaddr,&(saddr.sin_addr));
+	//saddr.sin_addr.s_addr=INADDR_ANY;
+	inet_aton(ipAddr,&(saddr.sin_addr));
 	for(int i=0;i<8;i++)
 		saddr.sin_zero[i]='\0';
 	int retval;
@@ -107,8 +107,8 @@ int main(int argc, char* argv[]){
 			return 5;
 		}
 		if(recvSize==0){
-			cout<<
-			"Transmission completed gracefully"<<endl;
+			// cout<<
+			// "Transmission completed gracefully"<<endl;
 			break;
 		}
 		//Checks for null char
@@ -117,7 +117,6 @@ int main(int argc, char* argv[]){
 					&&messageIter[i]!='\0';i++);
 		if(i==recvSize){
 			//Null char not found; Continue loop
-			cout<<"Null Not found"<<endl;
 			messageIter+=recvSize;
 			maxLen-=recvSize;
 		}else{
@@ -140,18 +139,20 @@ int main(int argc, char* argv[]){
 			break;
 		}
 	}
-	//delete[] messageIterInit;
-	printf("%p\n",message);
-	int i=0;
-	while(
-		*message!='\0'
-		){
-		i++;
-		cout<<*message;
-		message+=1;
-	}
-	cout<<i<<endl;
-	cout<<"Outside"<<endl;
+	delete[] messageIterInit;
+	// int i=0;
+	// while(
+	// 	*message!='\0'
+	// 	){
+	// 	i++;
+	// 	cout<<*message<<endl;
+	// 	message+=1;
+	// }
+	// i++;
+	// cout<<*message<<endl;
+	// message+=1;
+	// cout<<i<<endl;
+	// cout<<"Outside"<<endl;
 	while(true){
 
 	}
