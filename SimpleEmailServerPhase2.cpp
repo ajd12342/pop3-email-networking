@@ -103,16 +103,15 @@ bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
 vector<string> subDirFiles(DIR* dir){
 	vector<string> dirfiles;
 	struct dirent *ent;
-	while ((ent = readdir (dir)) != NULL) {
-		if(strcmp(ent->d_name,".")
-			|| strcmp(ent->d_name,"..")){
+	while ((ent = readdir(dir)) != NULL) {
+		string name=string(ent->d_name);
+		if(name=="."|| name==".."){
 
 		}else{
-			dirfiles.push_back(ent->d_name);
+			dirfiles.push_back(string(ent->d_name));
 		}
 	}
 	return dirfiles;
-
 }
 
 int main(int argc, char* argv[]){
@@ -134,6 +133,7 @@ int main(int argc, char* argv[]){
 		<<endl;
 		return 3;
 	}
+	ifs.close();
 
 	//Check if user-database exists
 	char* dirFile=argv[3]; 
@@ -144,6 +144,8 @@ int main(int argc, char* argv[]){
 		dirFile<<endl;
 		return 4;
 	}
+	closedir(dir);
+
 	//Bind
 	int portNum;
 	try{
@@ -186,6 +188,8 @@ int main(int argc, char* argv[]){
 	}
 	cout<<"ListenDone: "<<portNum<<endl;
 
+	//Loop to handle clients sequentially
+	while(true){
 	//Accept
 	struct sockaddr_in caddr;
 	unsigned int addrlen=sizeof(struct sockaddr);
@@ -246,10 +250,25 @@ int main(int argc, char* argv[]){
 		vector<string> authUser;
 		vector<string> authPass;
 		string userit,passit;
+
+		//Read from password file
+		//Again check for existence of file(could have been removed while server was running)
+		ifstream ifs(passwdFile,ifstream::in);
+		if(ifs.fail()){
+			cerr<<
+			"Failed to open/find file at "<<passwdFile
+			<<endl;
+			close(sockfd);
+			close(sockfdListen);
+			return 3;
+		}
 		while(ifs>>userit>>passit){
 			authUser.push_back(userit);
 			authPass.push_back(passit);
 		}
+		ifs.close();
+
+		//Search for user
 		vector<string>::iterator findUser=find(authUser.begin(),authUser.end(),user);
 		//User not found
 		if(findUser==authUser.end()){
@@ -280,6 +299,18 @@ int main(int argc, char* argv[]){
 
 			if(listMsg=="LIST"){
 				//LIST received
+
+				//Check if user-database exists, again 
+				DIR* dir=opendir(dirFile);
+				if(!dir){
+					cerr<<
+					"Failed to open/find directory at "<<
+					dirFile<<endl;
+					close(sockfd);
+					close(sockfdListen);
+					return 4;
+				}
+				
 				//Traverse directory
 				vector<string> directories=
 				subDirFiles(dir);
@@ -317,9 +348,31 @@ int main(int argc, char* argv[]){
 				cout<<"Unknown command"<<endl;
 			}
 		}
+
+		//Receive quit message/closed connection
+		{
+		char* remMessage=new char[100];
+		char* message=new char[100];
+		int maxLen=100;
+		bool changed=recvString(message,remMessage,maxLen,sockfd);
+		delete[] remMessage;
+		if(changed){
+			string quitMsg=string(message);
+			delete[] message;
+			if(quitMsg=="quit"){
+				cout<<"Bye "<<user<<endl;
+			}else{
+				cout<<"Unknown command"<<endl;
+			}
+		}
+		}
 	}
+
 	}
-	//Close
+	//Close client socket
 	close(sockfd);
+	}
+	
+	//Close listening socket	
 	close(sockfdListen);
 }
