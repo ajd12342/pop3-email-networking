@@ -45,15 +45,13 @@ void sendString(string messageStr,int sockfd){
 
 //Receive a message till null character is hit, with trailing data placed in remMessage
 bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
-	char* messageIter=new char[maxLen];
-	char* messageIterInit=messageIter;
+	char* messageInit=message;
 	bool changed=false;
 	//Reads till null char is encountered
-	// int iter=0; //Rem later
 
 	//Receive till null/end of sending
 	while(true){
-		int recvSize=recv(sockfd,messageIter,maxLen,0);
+		int recvSize=recv(sockfd,message,maxLen,0);
 
 		// iter++;
 		// cout<<"Recvd "<<iter<<"times"<<endl;
@@ -66,36 +64,28 @@ bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
 		if(recvSize==0){
 			break;
 		}
+		changed=true;
 		//Checks for null char
 		int i;
 		for(i=0;(i<recvSize)
-					&&messageIter[i]!='\0';i++);
+					&&message[i]!='\0';i++);
 		if(i==recvSize){
 			//Null char not found; Continue loop
-			messageIter+=recvSize;
+			message+=recvSize;
 			maxLen-=recvSize;
 		}else{
 			//If any characters were encountered
 			//after '\0', store them in remMessage
 			for(int j=i+1;j<recvSize;j++){
-				remMessage[j-i-1]=messageIter[j];
+				remMessage[j-i-1]=message[j];
 			}
 			//Copy messageIter into message
-			changed=true;
-			char* ptr=messageIterInit;
-			char* messagePtr=message;
-			while(ptr!=(messageIter+i+1)){
-				*messagePtr=*ptr;
-				ptr+=1;
-				messagePtr+=1;
-			}
-			//cout<<"Null found at "<<i<<endl;
-			messageIter+=recvSize;
+			message+=recvSize;
 			maxLen-=recvSize;
 			break;
 		}
 	}
-	delete[] messageIterInit;
+	message=messageInit;
 	return changed;
 }
 
@@ -310,7 +300,7 @@ int main(int argc, char* argv[]){
 					close(sockfdListen);
 					return 4;
 				}
-				
+
 				//Traverse directory
 				vector<string> directories=
 				subDirFiles(dir);
@@ -341,30 +331,28 @@ int main(int argc, char* argv[]){
 						to_string(noOfFiles)+string(" \n");
 						cout<<infoMsg;
 						sendString(infoMsg,sockfd);
+
+						//Receive quit message/closed connection
+						char* remMessage=new char[100];
+						char* message=new char[100];
+						int maxLen=100;
+						bool changed=recvString(message,remMessage,maxLen,sockfd);
+						delete[] remMessage;
+						if(changed){
+							string quitMsg=string(message);
+							delete[] message;
+							if(quitMsg=="quit"){
+								cout<<"Bye "<<user<<endl;
+							}else{
+								cout<<"Unknown command"<<endl;
+							}
+						}
 					}
   				}
 			}else{
 				//Unknown command received
 				cout<<"Unknown command"<<endl;
 			}
-		}
-
-		//Receive quit message/closed connection
-		{
-		char* remMessage=new char[100];
-		char* message=new char[100];
-		int maxLen=100;
-		bool changed=recvString(message,remMessage,maxLen,sockfd);
-		delete[] remMessage;
-		if(changed){
-			string quitMsg=string(message);
-			delete[] message;
-			if(quitMsg=="quit"){
-				cout<<"Bye "<<user<<endl;
-			}else{
-				cout<<"Unknown command"<<endl;
-			}
-		}
 		}
 	}
 
