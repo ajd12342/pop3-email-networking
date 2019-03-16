@@ -52,10 +52,6 @@ bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
 	//Receive till null/end of sending
 	while(true){
 		int recvSize=recv(sockfd,message,maxLen,0);
-
-		// iter++;
-		// cout<<"Recvd "<<iter<<"times"<<endl;
-		// cout<<"Recvd size: "<<recvSize<<endl;
 		if(recvSize==-1){
 			cerr<<
 			"Error occurred while receiving"<<endl;
@@ -65,6 +61,7 @@ bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
 			break;
 		}
 		changed=true;
+		
 		//Checks for null char
 		int i;
 		for(i=0;(i<recvSize)
