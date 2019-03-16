@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
-#include <string.h>
+#include <cstring>
+#include <vector>
+#include <algorithm>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -9,6 +11,9 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <stdlib.h>
+
 using namespace std;
 //Send a given null-terminated string
 void sendString(string messageStr,int sockfd){
@@ -94,10 +99,11 @@ bool recvMessageAndOutput(int sockfd,int maxLen){
 int main(int argc, char* argv[]){
 
 	//Checks for correct no. of arguments
-	if(argc != 4){
+	if(argc != 6){
 		cerr << 
-		"Usage: ./a.out <serverIPADDr:port> "<<
-		"<username> <passwd>"<<endl;
+		"Usage: ./client <serverIPADDr:port> "<<
+		"<username> <passwd> "<<
+		"<list-of-messages> <local-folder>"<<endl;
 		return 1;
 	}
 
@@ -152,6 +158,69 @@ int main(int argc, char* argv[]){
 		return 2;
 	}
 	cout<<"ConnectDone: "<<ipAddr<<":"<<port<<endl;
+
+	//Parse list of numbers
+	char* listOfNosString=argv[4];
+	vector<string> msgNumStrs;
+	char* pch;
+	pch=strtok(listOfNosString,", ");
+	while(pch!=NULL){
+		msgNumStrs.push_back(string(pch));
+		pch=strtok(NULL,", ");
+	}
+	vector<int> msgNums(msgNumStrs.size());
+	for(int i=0;i<msgNumStrs.size();i++){
+		try{
+			msgNums[i]=stoi(msgNumStrs[i]);
+		}catch(exception e){
+			cerr << 
+			"Usage: ./client <serverIPADDr:port> "<<
+			"<username> <passwd> "<<
+			"<list-of-messages> <local-folder>"<<endl;
+			close(sockfd);
+			return 3;
+		}
+	}
+
+	//Handle local-folder
+	string localFolder=string(argv[5]);
+	//Escape quotes inside localFolder later
+
+	//Attempt to remove folder
+	string remFolder=string("#/bin/bash\nrm -rf \"")
+	+localFolder+string("\";");
+	system(remFolder.c_str());
+
+	//Create folder
+	string makeFolder=string("#/bin/bash\n")+
+	string("mkdir \"")+localFolder+string("\";");
+	int status=system(makeFolder.c_str());
+	if(status!=0){
+		cerr<<"Failed to create "<<
+		"directory at "<<localFolder<<endl;
+		close(sockfd);
+		return 4;
+	}
+
+	//Attempt accessing folder
+	DIR* dir=opendir(localFolder.c_str());
+	if(!dir){
+		cerr<<
+		"Failed to access directory at "<<
+		localFolder<<endl;
+		close(sockfd);
+		return 4;
+	}
+	closedir(dir);
+
+	//Send download request and receive files
+	for(int reqNum: msgNums){
+		//Send download request
+		string req=to_string(reqNum);
+		string reqMsg="RETRV "+req;
+	}
+
+
 
 	//Send Message
 	sendString(string("User: ")+

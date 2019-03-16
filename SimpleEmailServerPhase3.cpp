@@ -106,32 +106,10 @@ int main(int argc, char* argv[]){
 	//Checks for correct no. of arguments
 	if(argc != 4){
 		cerr << 
-		"Usage: ./a.out <portNum> <passwdFile>"<<
+		"Usage: ./server <portNum> <passwdFile>"<<
 		" <user-database>"<<endl;
 		return 1;
 	}
-
-	//Now, checks whether passwdFile can be opened
-	string passwdFile=argv[2];
-	ifstream ifs(passwdFile,ifstream::in);
-	if(ifs.fail()){
-		cerr<<
-		"Failed to open/find file at "<<passwdFile
-		<<endl;
-		return 3;
-	}
-	ifs.close();
-
-	//Check if user-database exists
-	char* dirFile=argv[3]; 
-	DIR* dir=opendir(dirFile);
-	if(!dir){
-		cerr<<
-		"Failed to open/find directory at "<<
-		dirFile<<endl;
-		return 4;
-	}
-	closedir(dir);
 
 	//Bind
 	int portNum;
@@ -165,6 +143,30 @@ int main(int argc, char* argv[]){
 		return 2;
 	}
 	cout<<"BindDone: "<<portNum<<endl;
+
+	//Now, checks whether passwdFile can be opened
+	string passwdFile=argv[2];
+	ifstream ifs(passwdFile,ifstream::in);
+	if(ifs.fail()){
+		cerr<<
+		"Failed to open/find file at "<<passwdFile
+		<<endl;
+		close(sockfdListen);
+		return 3;
+	}
+	ifs.close();
+
+	//Check if user-database exists
+	char* dirFile=argv[3]; 
+	DIR* dir=opendir(dirFile);
+	if(!dir){
+		cerr<<
+		"Failed to open/find directory at "<<
+		dirFile<<endl;
+		close(sockfdListen);
+		return 4;
+	}
+	closedir(dir);
 
 	//Listen
 	retval=listen(sockfdListen,MAX_BACKLOG);
