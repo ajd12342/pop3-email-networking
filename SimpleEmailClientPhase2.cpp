@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
 	//Checks for correct no. of arguments
 	if(argc != 4){
 		cerr << 
-		"Usage: ./a.out <serverIPADDr:port> "<<
+		"Usage: ./client <serverIPADDr:port> "<<
 		"<username> <passwd>"<<endl;
 		return 1;
 	}

@@ -273,7 +273,10 @@ int main(int argc, char* argv[]){
 	}
 	//Login done
 	if(loginDone){
-		//Try receiving LIST
+		//Handle commands and set closeConn to true if quit/unknown command 
+		bool closeConn=false;
+		while(!closeConn){
+		//Try receiving command
 		char* remMessage=new char[100];
 		char* message=new char[100];
 		int maxLen=100;
@@ -281,10 +284,10 @@ int main(int argc, char* argv[]){
 		delete[] remMessage;
 
 		if(changed){
-			string listMsg=string(message);
+			string commandMsg=string(message);
 			delete[] message;
 
-			if(listMsg=="LIST"){
+			if(commandMsg=="LIST"){
 				//LIST received
 
 				//Check if user-database exists, again 
@@ -328,28 +331,20 @@ int main(int argc, char* argv[]){
 						to_string(noOfFiles)+string(" \n");
 						cout<<infoMsg;
 						sendString(infoMsg,sockfd);
-
-						//Receive quit message/closed connection
-						char* remMessage=new char[100];
-						char* message=new char[100];
-						int maxLen=100;
-						bool changed=recvString(message,remMessage,maxLen,sockfd);
-						delete[] remMessage;
-						if(changed){
-							string quitMsg=string(message);
-							delete[] message;
-							if(quitMsg=="quit"){
-								cout<<"Bye "<<user<<endl;
-							}else{
-								cout<<"Unknown command"<<endl;
-							}
-						}
 					}
   				}
-			}else{
+			}else if(commandMsg=="quit"){
+				cout<<"Bye "<<user<<endl;
+				closeConn=true;
+			}
+			else{
 				//Unknown command received
 				cout<<"Unknown command"<<endl;
+				closeConn=true;
 			}
+		}else{
+			closeConn=true;
+		}
 		}
 	}
 
