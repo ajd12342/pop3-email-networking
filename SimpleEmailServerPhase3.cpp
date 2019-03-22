@@ -23,13 +23,9 @@ void sendString(string messageStr,int sockfd){
 	char* messageInit=message;
 	strcpy(message,c_message);
 	int messageRem=strlen(message)+1;
-	// cout<<message<<endl;
-	// cout<<"Message length: "<<messageRem<<endl;
 	while(messageRem!=0){
 		int sentSize=send(sockfd,message,
 			messageRem,0);
-		// cout<<sentSize;
-		// cout<<"Entered"<<endl;
 		if(sentSize==-1){
 			cerr<<"Unable to send "<<
 			"because a local error occurred. "<<
@@ -39,8 +35,66 @@ void sendString(string messageStr,int sockfd){
 			message=message+sentSize;
 		}
 	}
-	// cout<<"Message Sent"<<endl;
 	delete[] messageInit;
+}
+
+//Send binary data
+void sendData(FILE* file, int bufLen, long fileLen,int sockfd){
+    unsigned char* buf=new unsigned char[bufLen];
+    while(fileLen>0)
+    {
+    	fread(buf,sizeof(unsigned char),
+    		min(bufLen,fileLen),file);
+
+        int sentSize = send(sockfd,buf, bufLen, 0);
+        if (sentSize == -1)
+        {
+            cerr<<"Unable to send "<<
+			"because a local error occurred. "<<
+			"Retrying..."<<endl;
+        }else{
+        	fileLen-=sentSize;
+    	}
+    }
+    delete[] buf;
+}
+
+//Send an integer
+void sendInt(int sockfd,uint32_t number){
+	uint32_t numNBO=htonl(number);
+	char* buf=(char*) &numNBO;
+	int remLen=sizeof(uint32_t);
+	while(remLen>0){
+		int sentSize=send(sockfd,buf,
+			remLen,0);
+		if(sentSize==-1){
+			err<<"Unable to send "<<
+			"because a local error occurred. "<<
+			"Retrying..."<<endl;
+		}else{
+			remLen-=sentSize;
+			buf+=sentSize;
+		}
+	}
+}
+
+//Receive an integer, return true on success
+bool recvInt(int sockfd, uint32_t* numberPtr){
+	char* buf=(char*) numberPtr;
+	int recvLen=sizeof(uint32_t);
+	while(recvLen>0){
+		int recvSize=recv(sockfd,buf,recvLen,0);
+		if(recvSize==-1){
+			cerr<<
+			"Error occurred while receiving"<<endl;
+			exit(5);
+		}
+		if(recvSize==0) break;
+		recvLen-=recvSize;
+		buf+=recvSize;
+	}
+	*numberPtr = ntohl(*numberPtr);
+	return recvLen==0;
 }
 
 //Receive a message till null character is hit, with trailing data placed in remMessage
@@ -84,6 +138,30 @@ bool recvString(char* message,char* remMessage,int maxLen, int sockfd){
 	}
 	message=messageInit;
 	return changed;
+}
+
+//Receive partial data till connection close or bufLen received
+pair<bool,bool> recvAndStoreData(FILE* file, int bufLen, int fileLen, int sockfd){
+	 unsigned char* fileBuf=new unsigned char[bufLen];
+	 bool changed=false;
+	//Receive till connection close/fileLen bytes are received
+	while(fileLen>0){
+		int recvSize=recv(sockfd,fileBuf,min(bufLen,fileLen),0);
+		if(recvSize==-1){
+			cerr<<
+			"Error occurred while receiving"<<endl;
+			exit(5);
+		}
+		if(recvSize==0){
+			break;
+		}
+		changed=true;
+		fwrite(fileBuf,sizeof(unsigned char),recvSize,
+			file);
+		fileLen-=recvSize;
+	}
+	delete[] fileBuf;
+	return make_pair(fileLen==0,changed);
 }
 
 //Find all subdirectories and files given a DIR*
@@ -313,7 +391,8 @@ int main(int argc, char* argv[]){
 
   				//Check whether we found user's dir
   				if(it==directories.end()){
-  					cout<<user<<": Folder Read Fail\n";
+  					cout<<user<<": Folder Read Fail"<<endl;
+  					closeConn=true;
   				}else{
   					//Found user dir
   					string userDirS=string(dirFile)+
@@ -322,7 +401,8 @@ int main(int argc, char* argv[]){
   					DIR* dir=opendir(userDir);
   					//Check if userDir can be opened
 					if(!dir){
-						cout<<user<<": Folder Read Fail\n";
+						cout<<user<<": Folder Read Fail"<<endl;
+						closeConn=true;
 					}else{
 						//Check number of messages
 						vector<string> files=
@@ -334,6 +414,98 @@ int main(int argc, char* argv[]){
 						cout<<infoMsg;
 						sendString(infoMsg,sockfd);
 					}
+					closedir(dir);
+  				}
+  			}else if(commandMsg.substr(0,6)=="RETRV "){
+  				//Retrv command received
+  				string msgIDS=commandMsg.substr(6,string::npos);
+  				int msgID=-1;
+  				try{
+  					msgID=stoi(msgIDS);
+  				}catch(exception e){
+  					cout<<"Unknown command"<<endl;
+					closeConn=true;
+  				}
+
+  				//Check if user-database exists, again 
+				DIR* dir=opendir(dirFile);
+				if(!dir){
+					cerr<<
+					"Failed to open/find directory at "<<
+					dirFile<<endl;
+					close(sockfd);
+					close(sockfdListen);
+					return 4;
+				}
+
+				//Traverse directory
+				vector<string> directories=
+				subDirFiles(dir);
+				closedir(dir);
+  				vector<string>::iterator it=
+  				find(directories.begin(),
+  					directories.end(),user);
+
+  				//Check whether we found user's dir
+  				if(it==directories.end()){
+  					cout<<"Message Read Fail"<<endl;
+  					closeConn=true;
+  				}else{
+  					//Found user dir
+  					string userDirS=string(dirFile)+
+  					"/"+user;
+  					const char* userDir=userDirS.c_str();
+  					DIR* dir=opendir(userDir);
+  					//Check if userDir can be opened
+					if(!dir){
+						cout<<"Message Read Fail"<<endl;
+						closeConn=true;
+					}else{
+						//Check if required message file is present
+						vector<string> files=
+						subDirFiles(dir);
+  						string msgFileName="";
+  						bool found=false;
+  						for(string fileS:files){
+  							int dotPos=fileS.find('.');
+  							if(dotPos!=string::npos){
+  								string preDot=fileS.substr(0,dotPos);
+  								if(preDot==msgIDS){
+  									found=true;
+  									msgFileName=fileS;
+  									break;
+  								}
+  							}
+  						}
+  						if(found){
+  							string msgFileS=userDirS+"/"+msgFileName;
+  							const char* msgFile=msgFileS.c_str();
+  							FILE* fp=fopen(msgFile,'rb');
+  							if(!fp){
+  								cout<<"Message Read Fail"<<endl;
+								closeConn=true;
+  							}else{
+  								cout<<user<<": Transferring Message "<<msgIDS<<" "<<endl;
+	  							//Send filename
+	  							sendString(msgFileName,sockfd);
+
+	  							//Find file size and send it
+	  							fseek(fp, 0L, SEEK_END);
+								long fileSize = ftell(fp);
+								rewind(fp);
+								sendInt(sockfd,fileSize);
+
+								//Send file if filesize > 0
+								if(fileSize>0){
+									sendData(fp, 100, fileSize,sockfd);
+								}
+							}
+  						}else{
+  							cout<<"Message Read Fail"<<endl;
+							closeConn=true;
+  						}
+					}
+					closedir(dir);
   				}
 			}else if(commandMsg=="quit"){
 				cout<<"Bye "<<user<<endl;
@@ -349,7 +521,6 @@ int main(int argc, char* argv[]){
 		}
 		}
 	}
-
 	}
 	//Close client socket
 	close(sockfd);

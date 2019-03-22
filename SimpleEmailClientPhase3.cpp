@@ -218,6 +218,8 @@ int main(int argc, char* argv[]){
 		//Send download request
 		string req=to_string(reqNum);
 		string reqMsg="RETRV "+req;
+		sendString(reqMsg,sockfd);
+		//Receive requested message
 	}
 
 
