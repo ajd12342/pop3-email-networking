@@ -189,13 +189,13 @@ vector<string> subDirFiles(DIR* dir){
 	return dirfiles;
 }
 int main(int argc, char* argv[]){
-
+	cout<<"argc"<<argc<<endl;
 	//Checks for correct no. of arguments
 	if(argc != 6){
 		cerr << 
 		"Usage: ./client <serverIPADDr:port> "<<
 		"<username> <passwd> "<<
-		"<list-of-messages> <local-folder>"<<endl;
+		"<local-folder> <list-of-messages>"<<endl;
 		return 1;
 	}
 
@@ -252,13 +252,13 @@ int main(int argc, char* argv[]){
 	cout<<"ConnectDone: "<<ipAddr<<":"<<port<<endl;
 
 	//Parse list of numbers
-	char* listOfNosString=argv[4];
+	char* listOfNosString=argv[5];
 	vector<string> msgNumStrs;
 	char* pch;
-	pch=strtok(listOfNosString,", ");
+	pch=strtok(listOfNosString,",");
 	while(pch!=NULL){
 		msgNumStrs.push_back(string(pch));
-		pch=strtok(NULL,", ");
+		pch=strtok(NULL,",");
 	}
 	vector<int> msgNums(msgNumStrs.size());
 	for(int i=0;i<msgNumStrs.size();i++){
@@ -268,14 +268,14 @@ int main(int argc, char* argv[]){
 			cerr << 
 			"Usage: ./client <serverIPADDr:port> "<<
 			"<username> <passwd> "<<
-			"<list-of-messages> <local-folder>"<<endl;
+			"<local-folder> <list-of-messages>"<<endl;
 			close(sockfd);
 			return 3;
 		}
 	}
 
 	//Handle local-folder
-	string localFolder=string(argv[5]);
+	string localFolder=string(argv[4]);
 	//Escape quotes inside localFolder later
 
 	//Attempt to remove folder

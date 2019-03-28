@@ -402,7 +402,8 @@ int main(int argc, char* argv[]){
 
   				//Check whether we found user's dir
   				if(it==directories.end()){
-  					cout<<user<<": Folder Read Fail\n";
+  					cout<<user<<": Folder Read Fail"<<endl;
+  					closeConn=true;
   				}else{
   					//Found user dir
   					string userDirS=string(dirFile)+
@@ -411,7 +412,8 @@ int main(int argc, char* argv[]){
   					DIR* dir=opendir(userDir);
   					//Check if userDir can be opened
 					if(!dir){
-						cout<<user<<": Folder Read Fail\n";
+						cout<<user<<": Folder Read Fail"<<endl;
+						closeConn=true;
 					}else{
 						//Check number of messages
 						vector<string> files=
@@ -423,8 +425,9 @@ int main(int argc, char* argv[]){
 						cout<<infoMsg;
 						sendString(infoMsg,sockfd);
 					}
+					closedir(dir);
   				}
-			}else if(commandMsg=="quit"){
+  			}else if(commandMsg=="quit"){
 				cout<<"Bye "<<user<<endl;
 				closeConn=true;
 			}
@@ -438,7 +441,6 @@ int main(int argc, char* argv[]){
 		}
 		}
 	}
-
 	}
 	//Close client socket
 	close(sockfd);

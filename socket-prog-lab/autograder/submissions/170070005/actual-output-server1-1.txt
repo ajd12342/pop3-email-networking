@@ -1,5 +1,0 @@
-BindDone: 2009
-ListenDone: 2009
-Client: 127.0.0.1:16566
-Welcome user1
-Bye user1

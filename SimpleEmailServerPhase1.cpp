@@ -249,6 +249,7 @@ int main(int argc, char* argv[]){
 	if(retval==-1){
 		cerr<<
 		"ListenFailed: "<<portNum<<endl;
+		close(sockfdListen);
 		return 4;
 	}
 	cout<<"ListenDone: "<<portNum<<endl;
@@ -261,6 +262,7 @@ int main(int argc, char* argv[]){
 	if(retval==-1){
 		cerr<<
 		"AcceptFailed"<<endl;
+		close(sockfdListen);
 		return 4;
 	}
 	int sockfd=retval;
@@ -336,9 +338,15 @@ int main(int argc, char* argv[]){
 		//User not found
 		if(findUser==authUser.end()){
 			cout<<"Invalid User"<<endl;
+			close(sockfd);
+			close(sockfdListen);
+			return 0;
 		//User found, but password wrong
 		}else if(authPass[distance(authUser.begin(),findUser)]!=pass){
 			cout<<"Wrong Passwd"<<endl;
+			close(sockfd);
+			close(sockfdListen);
+			return 0;
 		}else{
 			//Authenticated user, welcome message sent
 			string welcomeMessage=string("Welcome ")+user+string("\n");
@@ -370,6 +378,6 @@ int main(int argc, char* argv[]){
 	}
 	}
 	//Close
-	close(sockfd);
 	close(sockfdListen);
+	close(sockfd);
 }

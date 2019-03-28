@@ -1,5 +1,0 @@
-BindDone: 2011
-ListenDone: 2011
-Client: 127.0.0.1:18126
-Welcome user1000
-user1000: Folder Read Fail

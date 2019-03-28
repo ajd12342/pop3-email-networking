@@ -1,4 +1,0 @@
-BindDone: 5000
-ListenDone: 5000
-Client: 127.0.0.1:33922
-Wrong Passwd
