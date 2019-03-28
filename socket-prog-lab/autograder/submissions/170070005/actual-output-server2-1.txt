@@ -1,0 +1,6 @@
+BindDone: 2010
+ListenDone: 2010
+Client: 127.0.0.1:43655
+Welcome user1
+user1: No of messages 6 
+Bye user1

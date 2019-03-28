@@ -1,0 +1,10 @@
+BindDone: 5000
+ListenDone: 5000
+Client: 127.0.0.1:38400
+Welcome user1
+user1: No of messages 6 
+Bye user1
+Client: 127.0.0.1:38402
+Welcome user2
+user2: No of messages 7 
+Bye user2
