@@ -1,0 +1,5 @@
+BindDone: 2040
+ListenDone: 2040
+Client: 127.0.0.1:21711
+Welcome user1
+Bye user1

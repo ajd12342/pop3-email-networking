@@ -189,7 +189,6 @@ vector<string> subDirFiles(DIR* dir){
 	return dirfiles;
 }
 int main(int argc, char* argv[]){
-	cout<<"argc"<<argc<<endl;
 	//Checks for correct no. of arguments
 	if(argc != 6){
 		cerr << 

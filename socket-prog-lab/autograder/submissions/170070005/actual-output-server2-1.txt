@@ -1,0 +1,6 @@
+BindDone: 2041
+ListenDone: 2041
+Client: 127.0.0.1:46261
+Welcome user1
+user1: No of messages 6 
+Bye user1

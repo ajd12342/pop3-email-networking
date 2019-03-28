@@ -1,0 +1,6 @@
+BindDone: 2050
+ListenDone: 2050
+Client: 127.0.0.1:31880
+Welcome user1
+user1: Transferring Message 5 
+Bye user1

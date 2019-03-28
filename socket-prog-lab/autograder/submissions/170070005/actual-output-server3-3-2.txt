@@ -1,0 +1,6 @@
+BindDone: 2047
+ListenDone: 2047
+Client: 127.0.0.1:23234
+Welcome user1
+user1: Transferring Message 2 
+Bye user1
