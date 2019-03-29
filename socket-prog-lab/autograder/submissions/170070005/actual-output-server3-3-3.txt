@@ -1,6 +1,6 @@
-BindDone: 2048
-ListenDone: 2048
-Client: 127.0.0.1:43182
+BindDone: 2028
+ListenDone: 2028
+Client: 127.0.0.1:3760
 Welcome user1
 user1: Transferring Message 3 
 Bye user1

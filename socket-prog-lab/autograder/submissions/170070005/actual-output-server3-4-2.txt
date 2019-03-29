@@ -1,6 +1,6 @@
-BindDone: 2052
-ListenDone: 2052
-Client: 127.0.0.1:45245
+BindDone: 2032
+ListenDone: 2032
+Client: 127.0.0.1:24725
 Welcome user2
 user2: Transferring Message 2 
 user2: Transferring Message 3 

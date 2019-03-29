@@ -14,6 +14,11 @@
 #include <dirent.h>
 #define MAX_BACKLOG 2
 using namespace std;
+//Check crudely if it is a number
+bool is_number(string s)
+{
+    return(strspn( s.c_str(), "-0123456789" ) == s.size() );
+}
 //Send a given null-terminated string
 void sendString(string messageStr,int sockfd){
 	const char* c_message=messageStr.c_str();
@@ -262,7 +267,16 @@ int main(int argc, char* argv[]){
 	vector<int> msgNums(msgNumStrs.size());
 	for(int i=0;i<msgNumStrs.size();i++){
 		try{
-			msgNums[i]=stoi(msgNumStrs[i]);
+			if(!is_number(msgNumStrs[i])){
+				cerr << 
+				"Usage: ./client <serverIPADDr:port> "<<
+				"<username> <passwd> "<<
+				"<local-folder> <list-of-messages>"<<endl;
+				close(sockfd);
+				return 3;
+			}else{
+				msgNums[i]=stoi(msgNumStrs[i]);
+			}
 		}catch(exception e){
 			cerr << 
 			"Usage: ./client <serverIPADDr:port> "<<

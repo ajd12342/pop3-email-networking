@@ -14,7 +14,11 @@
 #include <dirent.h>
 #define MAX_BACKLOG 2
 using namespace std;
-
+//Check crudely if it is a number
+bool is_number(string s)
+{
+    return(strspn( s.c_str(), "-0123456789" ) == s.size() );
+}
 //Send a given null-terminated string
 void sendString(string messageStr,int sockfd){
 	const char* c_message=messageStr.c_str();
@@ -433,7 +437,13 @@ int main(int argc, char* argv[]){
   				bool continueDoing=true;
   				int msgID=-1;
   				try{
-  					msgID=stoi(msgIDS);
+  					if(!is_number(msgIDS)){
+  						cout<<"Unknown Command"<<endl;
+						closeConn=true;
+						continueDoing=false;
+  					}else{
+  						msgID=stoi(msgIDS);
+  					}
   				}catch(exception e){
   					cout<<"Unknown Command"<<endl;
 					closeConn=true;
