@@ -1,0 +1,10 @@
+BindDone: 2022
+ListenDone: 2022
+Client: 127.0.0.1:56042
+Client: 127.0.0.1:56554
+Welcome user1
+Welcome user2
+user1: Transferring Message 4 
+Bye user1
+user2: Transferring Message 3 
+Bye user2

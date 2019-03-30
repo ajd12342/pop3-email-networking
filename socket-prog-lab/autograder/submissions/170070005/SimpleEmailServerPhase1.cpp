@@ -40,23 +40,23 @@ void sendString(string messageStr,int sockfd){
 
 //Send binary data
 void sendData(FILE* file, long bufLen, long fileLen,int sockfd){
-    unsigned char* buf=new unsigned char[bufLen];
-    while(fileLen>0)
-    {
-    	fread(buf,sizeof(unsigned char),
-    		min(bufLen,fileLen),file);
+	unsigned char* buf=new unsigned char[bufLen];
+	while(fileLen>0)
+	{
+		fread(buf,sizeof(unsigned char),
+			min(bufLen,fileLen),file);
 
-        long sentSize = send(sockfd,buf,min(bufLen,fileLen), 0);
-        if (sentSize == -1)
-        {
-            cerr<<"Unable to send "<<
+		long sentSize = send(sockfd,buf,min(bufLen,fileLen), 0);
+		if (sentSize == -1)
+		{
+			cerr<<"Unable to send "<<
 			"because a local error occurred. "<<
 			"Retrying..."<<endl;
-        }else{
-        	fileLen-=sentSize;
-    	}
-    }
-    delete[] buf;
+		}else{
+			fileLen-=sentSize;
+		}
+	}
+	delete[] buf;
 }
 
 //Send an integer
@@ -220,6 +220,17 @@ int main(int argc, char* argv[]){
 	//inet_aton(ipAddr,&(saddr.sin_addr));
 	for(int i=0;i<8;i++)
 		saddr.sin_zero[i]='\0';
+
+	//Allow reuse of address/port
+	int reuse = 1;
+	if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+		perror("setsockopt(SO_REUSEADDR) failed");
+
+	#ifdef SO_REUSEPORT
+		if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) 
+			perror("setsockopt(SO_REUSEPORT) failed");
+	#endif
+		
 	int retval;
 	retval=bind(sockfdListen,(struct sockaddr*)&saddr,
 		sizeof(struct sockaddr));

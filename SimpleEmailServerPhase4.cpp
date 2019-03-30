@@ -27,7 +27,7 @@ int getNumfds(vector<int> activeSockets,int sockfdListen){
 //Check crudely if it is a number
 bool is_number(string s)
 {
-    return(strspn( s.c_str(), "-0123456789" ) == s.size() );
+	return(strspn( s.c_str(), "-0123456789" ) == s.size() );
 }
 //Send a given null-terminated string
 void sendString(string messageStr,int sockfd){
@@ -53,24 +53,27 @@ void sendString(string messageStr,int sockfd){
 }
 
 //Send binary data
-void sendData(FILE* file, long bufLen, long fileLen,int sockfd){
-    unsigned char* buf=new unsigned char[bufLen];
-    while(fileLen>0)
-    {
-    	fread(buf,sizeof(unsigned char),
-    		min(bufLen,fileLen),file);
-
-        long sentSize = send(sockfd,buf,min(bufLen,fileLen), 0);
-        if (sentSize == -1)
-        {
-            cerr<<"Unable to send "<<
+void sendData(FILE* file, long bufLen, long &fileLen,int sockfd){
+	unsigned char* buf=new unsigned char[bufLen];
+	unsigned char* bufInit=buf;
+	int remainingBuf=min(bufLen,fileLen);
+	fread(buf,sizeof(unsigned char),
+			min(bufLen,fileLen),file);
+	while(remainingBuf>0)
+	{
+		long sentSize = send(sockfd,buf,remainingBuf, 0);
+		if (sentSize == -1)
+		{
+			cerr<<"Unable to send "<<
 			"because a local error occurred. "<<
 			"Retrying..."<<endl;
-        }else{
-        	fileLen-=sentSize;
-    	}
-    }
-    delete[] buf;
+		}else{
+			fileLen-=sentSize;
+			remainingBuf-=sentSize;
+			buf+=sentSize;
+		}
+	}
+	delete[] bufInit;
 }
 
 //Send an integer
@@ -235,6 +238,18 @@ int main(int argc, char* argv[]){
 	//inet_aton(ipAddr,&(saddr.sin_addr));
 	for(int i=0;i<8;i++)
 		saddr.sin_zero[i]='\0';
+
+
+	//Allow reuse of address/port
+	int reuse = 1;
+	if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+		perror("setsockopt(SO_REUSEADDR) failed");
+
+	#ifdef SO_REUSEPORT
+		if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) 
+			perror("setsockopt(SO_REUSEPORT) failed");
+	#endif
+
 	int retval;
 	retval=bind(sockfdListen,(struct sockaddr*)&saddr,
 		sizeof(struct sockaddr));
@@ -298,6 +313,27 @@ int main(int argc, char* argv[]){
 	vector<bool> wishToCloseConn;
 	//While loop for select
 	while(true){
+		//Transmit small packets for each active file transfer and end transmission if completed
+		for(int idx=0;idx<activeSockets.size();idx++){
+			if(isTransferringFile[idx]){
+				int sockfd=activeSockets[idx];
+				FILE* fp=activeFiles[idx];
+				long fileSize=activeFileSizes[idx];
+				if(fileSize>0){
+					sendData(fp, 1000, fileSize,sockfd);
+					activeFiles[idx]=fp;
+					activeFileSizes[idx]=fileSize;
+				}else{
+					//Transmission complete
+					fclose(fp);
+					activeFiles[idx]=NULL;
+					activeFileSizes[idx]=0;
+					isTransferringFile[idx]=false;
+					waitingForCommand[idx]=true;
+					FD_SET(sockfd,&readfdsG);
+				}
+			}
+		}
 		fd_set readfdsL=readfdsG;
 		int numfds=getNumfds(activeSockets,sockfdListen);
 		int retval=select(numfds,&readfdsL,NULL,NULL,&tv);
@@ -343,19 +379,6 @@ int main(int argc, char* argv[]){
 					bool changed=recvString(message,remMessage,maxLen,sockfd);
 					delete[] remMessage;
 					if(!changed){
-						// close(sockfd);
-						// if(activeFiles[idx]){
-						// 	fclose(activeFiles[idx]);
-						// }
-						// activeSockets.erase(activeSockets.begin()+idx);
-						// activeunames.erase(activeunames.begin()+idx);
-						// activeFiles.erase(activeFiles.begin()+idx);
-						// activeFileSizes.erase(activeFileSizes.begin()+idx);
-						// authDone.erase(authDone.begin()+idx);
-						// isTransferringFile.erase(isTransferringFile.begin()+idx);
-						// waitingForCommand.erase(waitingForCommand.begin()+idx);
-						// wishToCloseConn.erase(wishToCloseConn.begin()+idx);
-						// FD_CLR(sockfd,&readfdsG);
 						wishToCloseConn[idx]=true;
 						delete[] message;
 					}else{
@@ -446,6 +469,7 @@ int main(int argc, char* argv[]){
 				}else{
 				if(waitingForCommand[idx]){
 					//Try receiving command
+					string user=activeunames[idx];
 					char* remMessage=new char[100];
 					char* message=new char[100];
 					int maxLen=100;
@@ -459,145 +483,204 @@ int main(int argc, char* argv[]){
 						string commandMsg=string(message);
 						delete[] message;
 						if(commandMsg.substr(0,6)=="RETRV "){
-  						//Retrv command received
-  						string msgIDS=commandMsg.substr(6,string::npos);
-  						}//NOT ACTUAL CLOSING BRACE
+							//Retrv command received
+							string msgIDS=commandMsg.substr(6,string::npos);
+							bool continueDoing=true;
+							int msgID=-1;
+							try{
+								if(!is_number(msgIDS)){
+									cout<<"Unknown Command"<<endl;
+									wishToCloseConn[idx]=true;
+									continueDoing=false;
+								}else{
+									msgID=stoi(msgIDS);
+								}
+							}catch(exception e){
+								cout<<"Unknown Command"<<endl;
+								wishToCloseConn[idx]=true;
+								continueDoing=false;
+							}
+							if(continueDoing){
+								//Check if user-database exists, again 
+								DIR* dir=opendir(dirFile);
+								if(!dir){
+									cerr<<
+									"Failed to open/find directory at "<<
+									dirFile<<endl;
+									close(sockfdListen);
+									for(int idx=0;idx<activeSockets.size();idx++){
+										close(activeSockets[idx]);
+										if(activeFiles[idx]){
+											fclose(activeFiles[idx]);
+										}
+									}
+									return 4;
+								}
+								//Traverse directory
+								vector<string> directories=
+								subDirFiles(dir);
+								closedir(dir);
+								vector<string>::iterator it=
+								find(directories.begin(),
+									directories.end(),user);
+								//Check whether we found user's dir
+								if(it==directories.end()){
+									cout<<"Message Read Fail"<<endl;
+									wishToCloseConn[idx]=true;
+								}else{
+									//Found user dir
+									string userDirS=string(dirFile)+
+									"/"+user;
+									const char* userDir=userDirS.c_str();
+									DIR* dir=opendir(userDir);
+									//Check if userDir can be opened
+									if(!dir){
+										cout<<"Message Read Fail"<<endl;
+										wishToCloseConn[idx]=true;
+										closedir(dir);
+									}else{
+										//Check if required message file is present
+										vector<string> files=
+										subDirFiles(dir);
+										string msgFileName="";
+										bool found=false;
+										for(string fileS:files){
+											int dotPos=fileS.find('.');
+											if(dotPos!=string::npos){
+												string preDot=fileS.substr(0,dotPos);
+												if(preDot==msgIDS){
+													found=true;
+													msgFileName=fileS;
+													break;
+												}
+											}
+										}
+										if(!found){
+											cout<<"Message Read Fail"<<endl;
+											wishToCloseConn[idx]=true;
+											closedir(dir);
+										}else{
+											string msgFileS=userDirS+"/"+msgFileName;
+											const char* msgFile=msgFileS.c_str();
+											FILE* fp=fopen(msgFile,"rb");
+											if(!fp){
+												cout<<"Message Read Fail"<<endl;
+												wishToCloseConn[idx]=true;
+												closedir(dir);
+												fclose(fp);
+											}else{
+												cout<<user<<": Transferring Message "<<msgIDS<<" "<<endl;
+												//Send filename
+												sendString(msgFileName,sockfd);
+
+												//Find file size and send it
+												fseek(fp, 0L, SEEK_END);
+												long fileSize = ftell(fp);
+												rewind(fp);
+												sendInt(sockfd,fileSize);
+
+												//Store everything for reusing
+												//Remove temporarily from recv check
+												FD_CLR(sockfd,&readfdsG);
+												activeFiles[idx]=fp;
+												activeFileSizes[idx]=fileSize;
+												isTransferringFile[idx]=true;
+												waitingForCommand[idx]=false;
+											}
+										}
+									}
+								}
+
+							}	
+						}else if(commandMsg=="LIST"){
+							//LIST received
+
+							//Check if user-database exists, again 
+							DIR* dir=opendir(dirFile);
+							if(!dir){
+								cerr<<
+								"Failed to open/find directory at "<<
+								dirFile<<endl;
+								close(sockfdListen);
+								for(int idx=0;idx<activeSockets.size();idx++){
+									close(activeSockets[idx]);
+									if(activeFiles[idx]){
+										fclose(activeFiles[idx]);
+									}
+								}
+								closedir(dir);
+								return 4;
+							}
+
+							//Traverse directory
+							vector<string> directories=
+							subDirFiles(dir);
+							closedir(dir);
+			  				vector<string>::iterator it=
+			  				find(directories.begin(),
+			  					directories.end(),user);
+
+			  				//Check whether we found user's dir
+			  				if(it==directories.end()){
+			  					cout<<user<<": Folder Read Fail"<<endl;
+			  					wishToCloseConn[idx]=true;
+			  				}else{
+			  					//Found user dir
+			  					string userDirS=string(dirFile)+
+			  					"/"+user;
+			  					const char* userDir=userDirS.c_str();
+			  					DIR* dir=opendir(userDir);
+			  					//Check if userDir can be opened
+								if(!dir){
+									cout<<user<<": Folder Read Fail"<<endl;
+									wishToCloseConn[idx]=true;
+									closedir(dir);
+								}else{
+									//Check number of messages
+									vector<string> files=
+									subDirFiles(dir);
+									int noOfFiles=files.size();
+									string infoMsg=user+
+									string(": No of messages ")+
+									to_string(noOfFiles)+string(" \n");
+									cout<<infoMsg;
+									sendString(infoMsg,sockfd);
+								}
+			  				}
+						}else if(commandMsg=="quit"){
+							cout<<"Bye "<<user<<endl;
+							wishToCloseConn[idx]=true;
+						}else{
+							//Unknown command received
+							cout<<"Unknown command"<<endl;
+							wishToCloseConn[idx]=true;
+						}
 					}
 				}
 				}
 			}
+
+			//Close connections if requested to do so
+			for(int idx=0;idx<activeSockets.size();idx++){
+				if(wishToCloseConn[idx]){
+					int sockfd=activeSockets[idx];
+					close(sockfd);
+					if(activeFiles[idx]){
+						fclose(activeFiles[idx]);
+					}
+					activeSockets.erase(activeSockets.begin()+idx);
+					activeunames.erase(activeunames.begin()+idx);
+					activeFiles.erase(activeFiles.begin()+idx);
+					activeFileSizes.erase(activeFileSizes.begin()+idx);
+					authDone.erase(authDone.begin()+idx);
+					isTransferringFile.erase(isTransferringFile.begin()+idx);
+					waitingForCommand.erase(waitingForCommand.begin()+idx);
+					wishToCloseConn.erase(wishToCloseConn.begin()+idx);
+					FD_CLR(sockfd,&readfdsG);
+				}
+			}
 		}
 	}
-
-	// //Loop to handle clients sequentially
-	// while(true){
-	// // Parse message
-	// if(changed){
-	// //Login done
-	// if(loginDone){
-	// 	//Handle commands and set closeConn to true if quit/unknown command 
-	// 	bool closeConn=false;
-	// 	while(!closeConn){
-	// 	if(changed){
-	// 		if(commandMsg.substr(0,6)=="RETRV "){
- //  				//Retrv command received
- //  				string msgIDS=commandMsg.substr(6,string::npos);
- //  				bool continueDoing=true;
- //  				int msgID=-1;
- //  				try{
- //  					if(!is_number(msgIDS)){
- //  						cout<<"Unknown Command"<<endl;
-	// 					closeConn=true;
-	// 					continueDoing=false;
- //  					}else{
- //  						msgID=stoi(msgIDS);
- //  					}
- //  				}catch(exception e){
- //  					cout<<"Unknown Command"<<endl;
-	// 				closeConn=true;
-	// 				continueDoing=false;
- //  				}
- //  				if(continueDoing){
- //  				//Check if user-database exists, again 
-	// 			DIR* dir=opendir(dirFile);
-	// 			if(!dir){
-	// 				cerr<<
-	// 				"Failed to open/find directory at "<<
-	// 				dirFile<<endl;
-	// 				close(sockfd);
-	// 				close(sockfdListen);
-	// 				return 4;
-	// 			}
-
-	// 			//Traverse directory
-	// 			vector<string> directories=
-	// 			subDirFiles(dir);
-	// 			closedir(dir);
- //  				vector<string>::iterator it=
- //  				find(directories.begin(),
- //  					directories.end(),user);
-
- //  				//Check whether we found user's dir
- //  				if(it==directories.end()){
- //  					cout<<"Message Read Fail"<<endl;
- //  					closeConn=true;
- //  				}else{
- //  					//Found user dir
- //  					string userDirS=string(dirFile)+
- //  					"/"+user;
- //  					const char* userDir=userDirS.c_str();
- //  					DIR* dir=opendir(userDir);
- //  					//Check if userDir can be opened
-	// 				if(!dir){
-	// 					cout<<"Message Read Fail"<<endl;
-	// 					closeConn=true;
-	// 				}else{
-	// 					//Check if required message file is present
-	// 					vector<string> files=
-	// 					subDirFiles(dir);
- //  						string msgFileName="";
- //  						bool found=false;
- //  						for(string fileS:files){
- //  							int dotPos=fileS.find('.');
- //  							if(dotPos!=string::npos){
- //  								string preDot=fileS.substr(0,dotPos);
- //  								if(preDot==msgIDS){
- //  									found=true;
- //  									msgFileName=fileS;
- //  									break;
- //  								}
- //  							}
- //  						}
- //  						if(found){
- //  							string msgFileS=userDirS+"/"+msgFileName;
- //  							const char* msgFile=msgFileS.c_str();
- //  							FILE* fp=fopen(msgFile,"rb");
- //  							if(!fp){
- //  								cout<<"Message Read Fail"<<endl;
-	// 							closeConn=true;
- //  							}else{
- //  								cout<<user<<": Transferring Message "<<msgIDS<<" "<<endl;
-	//   							//Send filename
-	//   							sendString(msgFileName,sockfd);
-
-	//   							//Find file size and send it
-	//   							fseek(fp, 0L, SEEK_END);
-	// 							long fileSize = ftell(fp);
-	// 							rewind(fp);
-	// 							sendInt(sockfd,fileSize);
-	// 							//Send file if filesize > 0
-	// 							if(fileSize>0){
-	// 								sendData(fp, 1000, fileSize,sockfd);
-	// 							}
-	// 						}
-	// 						fclose(fp);
- //  						}else{
- //  							cout<<"Message Read Fail"<<endl;
-	// 						closeConn=true;
- //  						}
-	// 				}
-	// 				closedir(dir);
- //  				}
- //  				}	
-	// 		}else if(commandMsg=="quit"){
-	// 			cout<<"Bye "<<user<<endl;
-	// 			closeConn=true;
-	// 		}
-	// 		else{
-	// 			//Unknown command received
-	// 			cout<<"Unknown command"<<endl;
-	// 			closeConn=true;
-	// 		}
-	// 	}else{
-	// 		closeConn=true;
-	// 	}
-	// 	}
-	// }
-	// }
-	// //Close client socket
-	// close(sockfd);
-	// }
-	
 	//Close listening socket	
 	close(sockfdListen);
 }

@@ -1,0 +1,16 @@
+BindDone: 2023
+ListenDone: 2023
+Client: 127.0.0.1:29350
+Client: 127.0.0.1:29862
+Welcome user1
+Welcome user2
+user1: Transferring Message 2 
+user2: Transferring Message 1 
+user2: Transferring Message 2 
+user1: Transferring Message 3 
+user2: Transferring Message 3 
+user1: Transferring Message 4 
+user2: Transferring Message 4 
+user1: Transferring Message 5 
+Bye user2
+Bye user1

@@ -221,6 +221,18 @@ int main(int argc, char* argv[]){
 	//inet_aton(ipAddr,&(saddr.sin_addr));
 	for(int i=0;i<8;i++)
 		saddr.sin_zero[i]='\0';
+
+
+	//Allow reuse of address/port
+	int reuse = 1;
+	if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0)
+		perror("setsockopt(SO_REUSEADDR) failed");
+
+	#ifdef SO_REUSEPORT
+		if (setsockopt(sockfdListen, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) 
+			perror("setsockopt(SO_REUSEPORT) failed");
+	#endif
+		
 	int retval;
 	retval=bind(sockfdListen,(struct sockaddr*)&saddr,
 		sizeof(struct sockaddr));

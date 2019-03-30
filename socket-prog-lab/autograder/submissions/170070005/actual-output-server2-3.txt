@@ -1,10 +1,10 @@
-BindDone: 2023
-ListenDone: 2023
-Client: 127.0.0.1:59605
+BindDone: 2010
+ListenDone: 2010
+Client: 127.0.0.1:46242
 Welcome user1
 user1: No of messages 6 
 Bye user1
-Client: 127.0.0.1:60117
+Client: 127.0.0.1:46754
 Welcome user2
 user2: No of messages 7 
 Bye user2
