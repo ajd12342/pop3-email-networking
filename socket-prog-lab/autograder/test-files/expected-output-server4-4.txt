@@ -1,0 +1,10 @@
+BindDone: 2018
+ListenDone: 2018
+Client: 127.0.0.1:55352
+Welcome user1
+Client: 127.0.0.1:55354
+Welcome user2
+Transferring Message 6
+Bye user1
+Transferring Message 7
+Bye user2

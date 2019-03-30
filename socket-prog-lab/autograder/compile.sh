@@ -10,7 +10,7 @@ do
     for part in Client Server
     do
 	f="SimpleEmail${part}Phase${phase}"
-	rm $f
+	rm -f "$f"
 	if [ -s "$f.cpp" ]; then
 	    rm -f "$f"
 	    flags[1]=""

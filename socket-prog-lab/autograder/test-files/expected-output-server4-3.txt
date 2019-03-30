@@ -1,0 +1,16 @@
+BindDone: 2017
+ListenDone: 2017
+Client: 127.0.0.1:35230
+Welcome user1
+Client: 127.0.0.1:35232
+Welcome user2
+Transferring Message 4
+Transferring Message 2
+Transferring Message 1
+Transferring Message 3
+Bye user1
+Transferring Message 2
+Transferring Message 4
+Transferring Message 5
+Transferring Message 3
+Bye user2

@@ -1,5 +1,0 @@
-BindDone: 2011
-ListenDone: 2011
-Client: 127.0.0.1:36494
-Welcome user1
-Message Read Fail

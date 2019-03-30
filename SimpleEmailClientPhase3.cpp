@@ -199,7 +199,7 @@ int main(int argc, char* argv[]){
 		cerr << 
 		"Usage: ./client <serverIPADDr:port> "<<
 		"<username> <passwd> "<<
-		"<local-folder> <list-of-messages>"<<endl;
+		"<list-of-messages> <local-folder>"<<endl;
 		return 1;
 	}
 
@@ -256,7 +256,7 @@ int main(int argc, char* argv[]){
 	cout<<"ConnectDone: "<<ipAddr<<":"<<port<<endl;
 
 	//Parse list of numbers
-	char* listOfNosString=argv[5];
+	char* listOfNosString=argv[4];
 	vector<string> msgNumStrs;
 	char* pch;
 	pch=strtok(listOfNosString,",");
@@ -271,7 +271,7 @@ int main(int argc, char* argv[]){
 				cerr << 
 				"Usage: ./client <serverIPADDr:port> "<<
 				"<username> <passwd> "<<
-				"<local-folder> <list-of-messages>"<<endl;
+				"<list-of-messages> <local-folder>"<<endl;
 				close(sockfd);
 				return 3;
 			}else{
@@ -281,14 +281,14 @@ int main(int argc, char* argv[]){
 			cerr << 
 			"Usage: ./client <serverIPADDr:port> "<<
 			"<username> <passwd> "<<
-			"<local-folder> <list-of-messages>"<<endl;
+			"<list-of-messages> <local-folder>"<<endl;
 			close(sockfd);
 			return 3;
 		}
 	}
 
 	//Handle local-folder
-	string localFolder=string(argv[4]);
+	string localFolder=string(argv[5]);
 	//Escape quotes inside localFolder later
 
 	//Attempt to remove folder

@@ -1,6 +1,0 @@
-BindDone: 2016
-ListenDone: 2016
-Client: 127.0.0.1:11989
-Welcome user1
-user1: Transferring Message 4 
-Bye user1

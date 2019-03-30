@@ -1,6 +1,0 @@
-BindDone: 5000
-ListenDone: 5000
-Client: 127.0.0.1:35498
-Welcome user1
-user1: No of messages 6	
-Bye user1
